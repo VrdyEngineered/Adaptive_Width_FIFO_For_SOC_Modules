@@ -1,0 +1,28 @@
+# Vivado auto-generated files and directories
+*.jou
+*.log
+*.str
+*.cache/
+*.hw/
+*.runs/
+*.sim/
+*.ip_user_files/
+*.srcs/
+*.xpr
+*.Xil/
+*.data/
+*.dcp
+
+# Simulation / waveform data
+*.wdb
+*.vcd
+*.saif
+
+# Temporary or local-only files
+*.bak
+*.tmp
+*.swp
+
+# OS and IDE specific
+.DS_Store
+Thumbs.db
