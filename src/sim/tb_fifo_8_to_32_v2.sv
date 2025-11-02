@@ -114,7 +114,7 @@ module tb_fifo_8_to_32_v2;
         end
         assert (full == 0);
         assert (status_reg == 0);
-        local_count = 0;
+      //  local_count = 0;
     endtask
 
     // Task to write one byte
@@ -132,7 +132,7 @@ module tb_fifo_8_to_32_v2;
         
         // Push to our scoreboard for checking later
         scoreboard_q.push_back(data);
-        local_count++;
+      //  local_count++;
         write_count++;
         
         @(posedge clk);
@@ -154,7 +154,11 @@ module tb_fifo_8_to_32_v2;
         $display("[%0t] READ: Triggered read.", $time);
         @(posedge clk);
         rd_en = 0;
-
+        // ------------------------------------------------------------
+    // NEW: Monitor-based scoreboard update
+    // This block mirrors the DUT's count register perfectly.
+    // ------------------------------------------------------------
+   
         // --- This is the CHECK ---
         // Assemble the expected data from our scoreboard
         expected_data = {scoreboard_q[3], scoreboard_q[2], scoreboard_q[1], scoreboard_q[0]};
@@ -176,9 +180,26 @@ module tb_fifo_8_to_32_v2;
 
         // Pop the 4 read items from our scoreboard
         for (int i = 0; i < 4; i++) scoreboard_q.pop_front();
-        local_count -= 4;
+       // local_count -= 4;
         read_count++;
     endtask
+
+ always @(posedge clk) begin
+        if (rst) begin // Assuming active-high reset
+            local_count <= 0;
+        end else begin
+            // Use the DUT's *internal* fire signals
+            if (uut.wr_fire && !uut.rd_fire) begin
+                local_count <= local_count + 1;
+            end
+            else if (!uut.wr_fire && uut.rd_fire) begin
+                local_count <= local_count - 4;
+            end
+            else if (uut.wr_fire && uut.rd_fire) begin
+                local_count <= local_count - 3;
+            end
+        end
+    end
 
     // ------------------------------------------------------------
     // Concurrent Assertions (Running always)
@@ -283,10 +304,14 @@ module tb_fifo_8_to_32_v2;
         $display("[%0t] Idling for 20 cycles...", $time);
         repeat(20) @(posedge clk);
         
-        assert(uut.wr_ptr == wr_ptr_before) else 
+        assert(uut.wr_ptr == wr_ptr_before) else begin
             $error("wr_ptr changed during idle!");
-        assert(uut.rd_ptr == rd_ptr_before) else 
+            error_count++;
+            end
+        assert(uut.rd_ptr == rd_ptr_before) else begin
             $error("rd_ptr changed during idle!");
+            error_count++; 
+            end
             
         $display("[%0t] Test 4 Complete. Pointers did not change.", $time);
 
